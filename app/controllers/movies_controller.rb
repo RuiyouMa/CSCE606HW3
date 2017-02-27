@@ -12,19 +12,29 @@ class MoviesController < ApplicationController
 
   
   def index
-    @all_ratings = Movie.order(:rating).select(:rating).map(&:rating).uniq
-    @rating_filter = check
-    @rating_filter.each do |rating|
-      params[rating] = true
+    if(!params.has_key?(:sort) && !params.has_key?(:ratings))
+      if(session.has_key?(:sort) || session.has_key?(:ratings))
+        redirect_to movies_path(:sort=>session[:sort], :ratings=>session[:ratings])
+      end
     end
-  
-    if params[:sort]
-      @movies = Movie.order(params[:sort])
+    @sort = params.has_key?(:sort) ? (session[:sort] = params[:sort]) : session[:sort]
+    @all_ratings = Movie.all_ratings.keys
+    @ratings = params[:ratings]
+    if(@ratings != nil)
+      ratings = @ratings.keys
+      session[:ratings] = @ratings
     else
-      @movies = Movie.where(:rating => @rating_filter)
+      if(!params.has_key?(:commit) && !params.has_key?(:sort))
+        ratings = Movie.all_ratings.keys
+        session[:ratings] = Movie.all_ratings
+      else
+        ratings = session[:ratings].keys
+      end
     end
+    @checked_ratings = (session[:ratings].keys if session.key?(:ratings)) || @all_ratings
+    @movies = Movie.order(@sort).where(rating: @checked_ratings)
+    @mark = ratings
   end
-    
   
   def new
     # default: render 'new' template
@@ -73,4 +83,9 @@ class MoviesController < ApplicationController
     end
   end
 
+  
+  def find_class(header)
+    params[:sort] == header ? 'hilite' : nil
+  end
+  helper_method :find_class
 end
