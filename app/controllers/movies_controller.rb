@@ -10,23 +10,21 @@ class MoviesController < ApplicationController
     # will render app/views/movies/show.<extension> by default
   end
 
+  
   def index
-    @all_ratings = Movie.order(:rating).select(:rating).map(&:rating).uniq
-    @checked_ratings = check
-    @checked_ratings.each do |rating|
-      params[rating] = true
-    end
-
-    if params[:sort]
-      @movies = Movie.order(params[:sort])
+    if request.original_url =~ /title/
+      @movies = Movie.order('title ASC')
+    elsif request.original_url =~ /release/
+      @movies = Movie.order('release_date ASC')
     else
-      @movies = Movie.where(:rating => @checked_ratings)
+      @movies = Movie.all
     end
   end
+    
+  
   def new
     # default: render 'new' template
   end
-
   def create
     @movie = Movie.create!(movie_params)
     flash[:notice] = "#{@movie.title} was successfully created."
@@ -51,7 +49,18 @@ class MoviesController < ApplicationController
     redirect_to movies_path
   end
   
+  def ratings
+    ratings = Array.new
+    movies = Movie.all
+    movies.each do |movie|
+       ratings.push movie[:rating]
+       ratings.uniq!
+    end
+    return ratings
+  end
+
   private
+
   def check
     if params[:ratings]
       params[:ratings].keys
